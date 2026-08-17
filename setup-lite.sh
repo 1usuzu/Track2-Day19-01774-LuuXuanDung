@@ -11,7 +11,7 @@ echo
 # ── 1. Python ───────────────────────────────────────────────────────────
 command -v python3 >/dev/null 2>&1 || { echo "[lite] python3 not found. Install Python 3.10+."; exit 1; }
 PY_VER=$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')
-echo "[lite] Python $PY_VER detected"
+echo "[lite] system python3 is $PY_VER (the venv may differ — reported below)"
 
 # ── 2. venv ─────────────────────────────────────────────────────────────
 if [ ! -d ".venv" ]; then
@@ -27,11 +27,28 @@ fi
 source .venv/bin/activate
 
 # ── 3. Install deps ─────────────────────────────────────────────────────
+# `uv venv` may pick a different interpreter than the system `python3`, so the
+# dill decision must be made from the VENV's Python (already active here), not
+# from the version printed above.
+VENV_PY_VER=$(python -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')
+NEED_DILL_OVERRIDE=$(python -c 'import sys; print(1 if sys.version_info >= (3,14) else 0)')
+echo "[lite] venv Python $VENV_PY_VER"
+if [ "$NEED_DILL_OVERRIDE" = "1" ]; then
+  echo "[lite] Python >= 3.14 -> applying dill>=0.4 override (feast's pin is too old; see requirements.txt)"
+fi
+
 if command -v uv >/dev/null 2>&1; then
-  uv pip install -r requirements.txt
+  if [ "$NEED_DILL_OVERRIDE" = "1" ]; then
+    uv pip install --overrides overrides-py314.txt -r requirements.txt
+  else
+    uv pip install -r requirements.txt
+  fi
 else
   pip install -q -U pip
   pip install -q -r requirements.txt
+  if [ "$NEED_DILL_OVERRIDE" = "1" ]; then
+    pip install -q --upgrade 'dill>=0.4,<1.0'
+  fi
 fi
 
 # ── 4. Convert Jupytext sources to .ipynb ───────────────────────────────

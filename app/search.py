@@ -56,6 +56,16 @@ class Searcher:
 
     @classmethod
     def from_corpus(cls, corpus_path: Path) -> "Searcher":
+        # A student who opens NB1 before running setup otherwise gets a bare
+        # FileNotFoundError pointing at a relative path, with no hint that the
+        # corpus is generated rather than committed.
+        if not Path(corpus_path).exists():
+            raise FileNotFoundError(
+                f"Corpus not found at {corpus_path}.\n"
+                "The corpus is generated, not committed. Run:\n"
+                "    bash setup-lite.sh      # first time (venv + deps + data)\n"
+                "    make seed               # if you only need to regenerate data"
+            )
         s = cls()
         s._load_docs(corpus_path)
         s._build_bm25()

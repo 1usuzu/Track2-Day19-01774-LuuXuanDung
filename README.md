@@ -28,11 +28,12 @@ make lab              # Jupyter Lab on :8888
 
 Yêu cầu: **Python 3.10–3.14**. Không cần Docker, không cần GPU, không cần OpenAI key.
 
-> **Python 3.14:** hai pin đã được nới để chạy được — `pyarrow<26` (bản `<22`
-> không có wheel cho 3.14 nên pip cố build từ nguồn và hỏng) và `dill>=0.4`
-> (feast pin `dill~=0.3.0`, nhưng dill 0.3.9 crash khi serialize UDF của
-> on-demand feature view trên 3.14). pip sẽ in cảnh báo xung đột dependency cho
-> `dill` — **đó là chủ ý**, cả NB4 lẫn NB8 đều xanh với cấu hình này.
+> **Python 3.14:** `pyarrow` được nới lên `<26` (bản `<22` không có wheel cho
+> 3.14 nên pip cố build từ nguồn và hỏng). Ngoài ra feast pin `dill~=0.3.0`
+> nhưng dill 0.3.9 crash trên 3.14 khi serialize UDF của on-demand feature view
+> — `setup-lite.sh` **tự phát hiện** và áp `overrides-py314.txt` chỉ khi venv
+> thực sự là 3.14. Các phiên bản Python khác cài đúng những gì feast yêu cầu.
+> Đã kiểm chứng end-to-end trên **Python 3.13.3 và 3.14.3**.
 
 Khi `setup-lite.sh` báo `All checks passed`, mở
 **http://localhost:8888/lab/tree/01_embeddings_index.ipynb** và bắt đầu.
