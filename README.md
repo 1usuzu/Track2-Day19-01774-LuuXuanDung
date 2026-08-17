@@ -26,7 +26,13 @@ make benchmark        # Precision@10 + latency table
 make lab              # Jupyter Lab on :8888
 ```
 
-Yêu cầu: **Python ≥ 3.10**. Không cần Docker, không cần GPU, không cần OpenAI key.
+Yêu cầu: **Python 3.10–3.14**. Không cần Docker, không cần GPU, không cần OpenAI key.
+
+> **Python 3.14:** hai pin đã được nới để chạy được — `pyarrow<26` (bản `<22`
+> không có wheel cho 3.14 nên pip cố build từ nguồn và hỏng) và `dill>=0.4`
+> (feast pin `dill~=0.3.0`, nhưng dill 0.3.9 crash khi serialize UDF của
+> on-demand feature view trên 3.14). pip sẽ in cảnh báo xung đột dependency cho
+> `dill` — **đó là chủ ý**, cả NB4 lẫn NB8 đều xanh với cấu hình này.
 
 Khi `setup-lite.sh` báo `All checks passed`, mở
 **http://localhost:8888/lab/tree/01_embeddings_index.ipynb** và bắt đầu.
@@ -40,7 +46,9 @@ make seed            Both: regenerate data/ files
 make api             Lite: FastAPI on :8000
 make lab             Lite: Jupyter Lab on :8888
 make benchmark       Both: Precision@10 + P99 latency table
-make test            Both: pytest
+make test            Both: pytest (34 tests, ~2 s)
+make gen-advanced    Both: regenerate NB6 compound queries + NB8 spend parquet
+make notebooks       Both: execute ALL notebooks headless (what the grader runs)
 make clean-lite      Lite: wipe venv + data + Feast registry
 
 make setup-docker    Docker: full stack + venv + seed
@@ -73,6 +81,19 @@ Endpoints: Qdrant http://localhost:6333 · Redis :6379 · Postgres :5432
 | `02_hybrid_search_rrf` | BM25 + vector + RRF (k=60) + đánh giá Precision@10 trên 50 golden queries | Bullet 2 — hybrid > keyword & semantic | Hybrid wins on `mixed` slice; thắng trung bình tổng thể |
 | `03_search_api_benchmark` | FastAPI `/search?q=...&mode=...` + đo P50/P95/P99 latency | Bullet 1 + 4 — REST endpoint < 50ms P99 | Hybrid P99 server-side < 50 ms |
 | `04_feast_feature_store` | 3 feature views + `feast apply` + `materialize` + online lookup + PIT join | Bullet 3 — Feast 3 views materialize+online | `materialize` thành công; online lookup P99 < 10ms |
+
+### Khối nâng cao (NB5–NB8) — theo bản deck mở rộng 2026
+
+| Notebook | Skill | Slide | Pass when… |
+|---|---|---|---|
+| `05_filtered_search` | post-filter vs pre-filter vs filtered-ANN, đo recall theo độ chọn lọc | §3 Filtered Search | post-filter sập ở filter ~4%; filtered-ANN giữ recall 1.00 |
+| `06_agent_retrieval` | retrieval-as-a-tool, planner tách câu hỏi, reflection, ghép ngữ cảnh với Feast | §6 Agentic Retrieval | agentic > single-shot về recall **và** balance, ở **cùng ngân sách** |
+| `07_semantic_cache` | ngưỡng / TTL / namespace + demo rò chéo tenant | §6 Semantic Cache + Bảo mật | bảng sweep có cả cột "trả lời sai"; demo leak rồi fix được |
+| `08_feature_engineering` | 6 họ feature, target-encoding leakage, PIT vs latest join, on-demand feature view | §7 Feature Engineering | leak gap > 0.30 trên `session_id`; ODFV trả 2 giá trị khác nhau cho cùng user |
+
+> **NB1–NB4 là bắt buộc.** NB5–NB8 là khối nâng cao bám sát phần deck mới
+> (filtered search, agentic retrieval, semantic cache, feature engineering).
+> Chúng dùng lại index đã dựng ở NB1 nên **không** phải embed lại corpus.
 
 **Source format:** Notebooks live as Jupytext `.py` files (small, easy to review).
 `bash setup-lite.sh` and `make lab` auto-convert to `.ipynb`. Edit `.ipynb` in

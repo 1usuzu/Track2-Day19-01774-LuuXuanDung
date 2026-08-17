@@ -25,7 +25,30 @@ Submit screenshots + notebook output for each criterion.
 | 4 | `04_feast_feature_store` | 100-call online lookup P99 reported (any value acceptable, but P99 < 10 ms = full credit) | 5 |
 | 4 | `04_feast_feature_store` | PIT join via `get_historical_features()` returns 3 rows × N features | 5 |
 | — | All notebooks      | Reproducible from clean `bash setup-lite.sh && make benchmark` (lite) or `bash setup-docker.sh && make benchmark` (docker) | 5 |
-|   |                    | **Core total** | **100** |
+|   |                    | **Core total (NB1–NB4)** | **100** |
+
+## Khối nâng cao NB5–NB8 (40 pts)
+
+Bám sát phần deck mở rộng 2026. Mỗi tiêu chí chấm trên output notebook đã chạy.
+
+| # | Notebook | Criterion | Pts |
+|---|---|---|---:|
+| 5 | `05_filtered_search` | Bảng recall theo độ chọn lọc: post-filter **giảm rõ rệt** khi filter chặt, filtered-ANN giữ 1.00 | 5 |
+| 5 | `05_filtered_search` | Over-fetch ladder cho thấy `fetch_k` phải ≈ 50% corpus mới cứu được recall | 5 |
+| 6 | `06_agent_retrieval` | Bảng 3 chiến lược ở **cùng ngân sách 16 doc**; agentic > single-shot cả `recall` lẫn `balance` | 5 |
+| 6 | `06_agent_retrieval` | Giải thích được vì sao `agentic (+filter)` **thấp hơn** `agentic (no filter)` | 5 |
+| 6 | `06_agent_retrieval` | `build_context()` chạy được, in ra cả feature (Feast) lẫn `doc_ids` | 3 |
+| 7 | `07_semantic_cache` | Bảng sweep có **cả hai** cột: tiết kiệm và trả lời sai | 5 |
+| 7 | `07_semantic_cache` | Chọn được ngưỡng có lý cho corpus này + giải thích vì sao 0,75 chưa đủ | 4 |
+| 7 | `07_semantic_cache` | Demo rò chéo tenant: leak khi `namespaced=False`, MISS khi `True` | 3 |
+| 8 | `08_feature_engineering` | Bảng leakage: `target-naive` gap > 0.30 trên `session_id`, in-fold ≈ 0 | 5 |
+| 8 | `08_feature_engineering` | PIT vs latest join: báo cáo % dòng rò + chênh lệch AUC | 5 |
+| 8 | `08_feature_engineering` | On-demand feature view: cùng user, hai `amount` → hai `amount_vs_avg` | 5 |
+| — | — | `make test` xanh (34 tests) và `make verify-lite` xanh | 5 |
+|   |                    | **Advanced total** | **50** |
+
+> Tổng: 100 (core) + 50 (nâng cao) + 20 (bonus). Giảng viên có thể chọn chấm
+> core-only cho lớp chạy chậm, hoặc core + chọn 2 trong 4 mission nâng cao.
 
 ## Bonus Challenge (optional, 20 bonus pts)
 

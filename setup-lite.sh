@@ -35,13 +35,22 @@ else
 fi
 
 # ── 4. Convert Jupytext sources to .ipynb ───────────────────────────────
-jupytext --to notebook --update notebooks/*.py 2>/dev/null || jupytext --to notebook notebooks/*.py
+# `_setup.py` is a helper module, not a notebook -- converting it produces
+# a _setup.ipynb that fails on execute. Only convert numbered notebooks.
+jupytext --to notebook --update notebooks/[0-9]*.py 2>/dev/null || jupytext --to notebook notebooks/[0-9]*.py
 
 # ── 5. .env scaffold ────────────────────────────────────────────────────
 [ -f .env ] || cp .env.example .env
 
 # ── 6. Seed corpus + golden set ─────────────────────────────────────────
 python scripts/seed_corpus.py
+
+# Data for the advanced missions (NB6 compound queries, NB8 spend parquet).
+# gen_agent_queries embeds the corpus once to build brute-force ground truth,
+# so this adds ~20 s -- worth it: the alternative is students hand-labelling.
+echo "  · seeding advanced-mission data (NB6 + NB8)…"
+python scripts/gen_agent_queries.py
+python scripts/gen_spend.py
 
 # ── 7. Smoke test ───────────────────────────────────────────────────────
 python scripts/verify_lite.py

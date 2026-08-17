@@ -32,7 +32,7 @@ api: ## [lite] Start FastAPI /search on http://localhost:8000
 	@$(UVICORN) app.main:app --reload --port 8000
 
 lab: ## [lite] Open Jupyter Lab on http://localhost:8888
-	@$(JUPYTEXT) --to notebook --update notebooks/*.py 2>/dev/null || true
+	@$(JUPYTEXT) --to notebook --update notebooks/[0-9]*.py 2>/dev/null || true
 	@$(JUPYTER) lab --notebook-dir=notebooks --ServerApp.token='' --no-browser
 
 benchmark: ## [both] Precision@10 (keyword/semantic/hybrid) + P99 latency table
@@ -41,9 +41,25 @@ benchmark: ## [both] Precision@10 (keyword/semantic/hybrid) + P99 latency table
 test: ## [both] Run pytest (app + scripts)
 	@$(PYTEST) -q
 
+gen-advanced: ## [both] Generate data for the advanced missions (NB6 + NB8)
+	@$(PY) scripts/gen_agent_queries.py
+	@$(PY) scripts/gen_spend.py
+
+notebooks: ## [both] Execute ALL notebooks headless (what the grader runs)
+	@$(JUPYTEXT) --to notebook --update notebooks/[0-9]*.py >/dev/null 2>&1 || true
+	@for nb in notebooks/[0-9]*.ipynb; do \
+		printf '%-42s' "$$nb"; \
+		PATH="$(PWD)/$(VENV)/bin:$$PATH" $(VENV)/bin/jupyter nbconvert --to notebook \
+			--execute --inplace "$$nb" --ExecutePreprocessor.timeout=900 \
+			>/dev/null 2>&1 && echo PASS || echo FAIL; \
+	done
+
 clean-lite: ## [lite] Wipe venv + data + Feast registry
 	rm -rf $(VENV) data/corpus_vn.jsonl data/golden_set.jsonl data/qdrant_storage \
+	       data/agent_queries.jsonl \
 	       app/feast_repo/data app/feast_repo/registry.db app/feast_repo/online_store.db \
+	       app/feast_repo_ondemand/data app/feast_repo_ondemand/registry.db \
+	       app/feast_repo_ondemand/online_store.db \
 	       notebooks/*.ipynb notebooks/.ipynb_checkpoints
 
 # ─────────────────────────────────────────────────────────────
@@ -65,5 +81,5 @@ docker-down: ## [docker] Stop services (data persists)
 docker-clean: ## [docker] Stop AND wipe Qdrant + Redis + Postgres volumes
 	docker compose down -v
 
-.PHONY: help setup-lite verify-lite seed api lab benchmark test clean-lite \
+.PHONY: help setup-lite verify-lite seed gen-advanced notebooks api lab benchmark test clean-lite \
         setup-docker verify-docker docker-up docker-down docker-clean

@@ -10,10 +10,11 @@
 # **Stack:** `rank-bm25` cho BM25 sparse + `qdrant-client` cho dense + RRF fusion.
 # Maps to slide §3 (Hybrid Search Mechanics) + deliverable bullet 2.
 #
-# > Trong sản xuất 2026, hybrid search (BM25 + Vector + RRF $k=60$) đạt 91%
-# > Recall@10 vs 78% cho dense-only — đó là lý do mọi vector DB lớn (Qdrant,
-# > Weaviate, OpenSearch, Elasticsearch) đều có hybrid built-in. Notebook này
-# > implement nó từ đầu để hiểu *vì sao* nó thắng.
+# > Hybrid search (BM25 + Vector + RRF $k=60$) là mặc định production 2026 —
+# > mọi vector DB lớn (Qdrant, Weaviate, OpenSearch, Milvus) đều có sẵn. Mức
+# > cải thiện điển hình so với dense-only là **~10–15 điểm Recall@10**, nhưng
+# > con số thật phụ thuộc corpus của bạn — nên notebook này **đo trên golden set
+# > của chính lab** thay vì trích một con số từ blog.
 
 # %%
 import _setup  # noqa: F401

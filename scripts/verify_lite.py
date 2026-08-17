@@ -75,6 +75,34 @@ def main() -> int:
         from app import main as app_main
         assert hasattr(app_main, "app"), "app.main.app missing"
 
+        # ── 7. advanced-mission modules (NB5-NB8) ───────────────────────
+        step("Advanced modules import + behave (metadata, filters, cache, agent, features)")
+        from app.agent import SEARCH_TOOL
+        from app.cache import SemanticCache  # noqa: F401
+        from app.metadata import doc_metadata
+        from app.features import auc, generate_events, leakage_experiment
+        import numpy as np
+
+        # metadata must be stable across processes, or the rubric is ungradable
+        assert doc_metadata("cloud_000") == doc_metadata("cloud_000")
+
+        # the tool enum must match the corpus, or every topic filter silently
+        # returns zero results
+        corpus_topics = set()
+        with corpus_path.open(encoding="utf-8") as f:
+            import json as _json
+            for line in f:
+                corpus_topics.add(_json.loads(line)["topic"])
+        enum = SEARCH_TOOL["input_schema"]["properties"]["topic"]["enum"]
+        missing = [t for t in enum if t not in corpus_topics]
+        assert not missing, f"tool enum has topics absent from corpus: {missing}"
+
+        # auc sanity + the leakage lesson still reproduces
+        assert abs(auc(np.array([1.0, 2, 3, 4]), np.array([0, 0, 1, 1])) - 1.0) < 1e-9
+        ev = generate_events(n_users=40, n_days=10, seed=42)
+        gap = leakage_experiment(ev, "session_id").set_index("encoding").loc["target-naive", "gap"]
+        assert gap > 0.20, f"target-encoding leak demo no longer reproduces (gap={gap:.3f})"
+
         print("\nAll checks passed — lite path is ready. Run `make api` then `make benchmark`.")
         return 0
     except Exception as exc:  # noqa: BLE001
