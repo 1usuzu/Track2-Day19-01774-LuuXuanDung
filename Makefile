@@ -69,6 +69,15 @@ clean-lite: ## [lite] Wipe venv + data + Feast registry
 setup-docker: ## [docker] Bring up Docker stack + venv + seed + smoke test
 	@bash setup-docker.sh
 
+runtime-check: ## [docker] Report docker / podman / apple-container versions + capabilities
+	@bash scripts/runtime-check.sh
+
+container-up: ## [apple] Start the 3 services with Apple container (no compose)
+	@bash scripts/container-up.sh
+
+container-down: ## [apple] Stop the Apple container stack (add ARGS=--wipe to drop volumes)
+	@bash scripts/container-down.sh $(ARGS)
+
 verify-docker: ## [docker] Verify all 3 services reachable + Feast wired
 	@$(PY) scripts/verify_docker.py
 
@@ -82,4 +91,5 @@ docker-clean: ## [docker] Stop AND wipe Qdrant + Redis + Postgres volumes
 	docker compose down -v
 
 .PHONY: help setup-lite verify-lite seed gen-advanced notebooks api lab benchmark test clean-lite \
-        setup-docker verify-docker docker-up docker-down docker-clean
+        setup-docker verify-docker docker-up docker-down docker-clean \
+        runtime-check container-up container-down

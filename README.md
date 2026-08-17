@@ -69,8 +69,43 @@ make api &
 make benchmark
 ```
 
-Yêu cầu: Docker Desktop ≥ 4.x, RAM ≥ 8 GB free, port 6333/6379/5432 không xung đột.
+Yêu cầu: RAM ≥ 8 GB free, port 6333/6379/5432 không xung đột.
 Endpoints: Qdrant http://localhost:6333 · Redis :6379 · Postgres :5432
+
+### Ba runtime, không phải chỉ Docker
+
+```bash
+make runtime-check     # in ra runtime nào có, version bao nhiêu, làm được gì
+```
+
+| Runtime | Compose? | Lệnh |
+|---|---|---|
+| **Docker Desktop** | có | `bash setup-docker.sh` (dùng `docker compose`) |
+| **Apple `container`** | **không** | `make container-up` rồi `bash setup-docker.sh` |
+| **Podman** | có (podman-compose) | `podman compose up -d` rồi `bash setup-docker.sh` |
+
+[**Apple `container`**](https://github.com/apple/container) chạy OCI image trong
+micro-VM trên Apple silicon (macOS 26+), **không có compose**, nên
+`docker-compose.yml` không dùng được. `scripts/container-up.sh` là bản tương
+đương viết tay: **cùng image tag, cùng port, cùng env, cùng tên volume**, nên
+`.env` và cấu hình Feast không phải đổi gì.
+
+```bash
+make runtime-check          # xem bạn đang có gì
+make container-up           # khởi động Qdrant + Redis + Postgres
+make container-down         # dừng (giữ volume)
+make container-down ARGS=--wipe   # dừng + xoá volume
+```
+
+> **Một khác biệt thật giữa Docker và Apple container:** volume có tên của
+> `container` là một filesystem đã format nên đã chứa sẵn `lost+found`.
+> Postgres `initdb` từ chối khởi tạo vào thư mục không rỗng và container chết
+> ngay. `container-up.sh` xử lý bằng `PGDATA=/var/lib/postgresql/data/pgdata`
+> (thư mục con của mount point). Docker không gặp lỗi này vì volume của nó rỗng.
+>
+> Đã kiểm chứng end-to-end trên macOS 26.5.1 / Apple silicon với
+> `container` 1.2.2: cả 3 service chạy, `verify_docker.py` xanh, index 1000 doc
+> vào Qdrant server 12.9 s.
 
 ---
 

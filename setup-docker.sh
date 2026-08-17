@@ -8,20 +8,39 @@ echo "[docker] Day 19 full Docker setup"
 echo "[docker] Stack: Qdrant (server) + Redis + Postgres + bge-m3 embeddings"
 echo
 
-# ── 1. Docker preflight ─────────────────────────────────────────────────
-command -v docker >/dev/null 2>&1 || { echo "[docker] Docker not found. Install Docker Desktop first."; exit 1; }
-docker compose version >/dev/null 2>&1 || { echo "[docker] Need Docker Compose v2 (bundled with Desktop ≥ 4.x)."; exit 1; }
+# ── 1. Runtime preflight ────────────────────────────────────────────────
+# Three runtimes are plausible now. Apple's `container` has no compose
+# implementation, so it gets its own start path (scripts/container-up.sh).
+# `bash scripts/runtime-check.sh` prints the full picture.
+RUNTIME=""
+if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1 \
+   && docker info >/dev/null 2>&1; then
+  RUNTIME="docker"
+elif command -v container >/dev/null 2>&1; then
+  RUNTIME="apple"
+fi
 
-# ── 2. Bring up services ────────────────────────────────────────────────
-docker compose up -d
-
-echo "[docker] Waiting up to 30s for services to become healthy..."
-for i in $(seq 1 30); do
-  if docker compose ps --format json | grep -q '"Health":"healthy"'; then
-    break
-  fi
-  sleep 1
-done
+case "$RUNTIME" in
+  docker)
+    echo "[docker] using docker compose"
+    docker compose up -d
+    echo "[docker] Waiting up to 30s for services to become healthy..."
+    for i in $(seq 1 30); do
+      if docker compose ps --format json | grep -q '"Health":"healthy"'; then break; fi
+      sleep 1
+    done
+    ;;
+  apple)
+    echo "[docker] Docker unavailable; using Apple container (github.com/apple/container)"
+    bash scripts/container-up.sh
+    ;;
+  *)
+    echo "[docker] No usable container runtime found."
+    echo "[docker] Run 'bash scripts/runtime-check.sh' for details, or use the lite path:"
+    echo "[docker]   bash setup-lite.sh"
+    exit 1
+    ;;
+esac
 
 # ── 3. Python venv (same as lite) ───────────────────────────────────────
 if [ ! -d ".venv" ]; then
@@ -35,14 +54,26 @@ fi
 source .venv/bin/activate
 
 # ── 4. Install lite + docker extras ─────────────────────────────────────
+NEED_DILL_OVERRIDE=$(python -c 'import sys; print(1 if sys.version_info >= (3,14) else 0)')
+if [ "$NEED_DILL_OVERRIDE" = "1" ]; then
+  echo "[docker] venv Python >= 3.14 -> applying dill>=0.4 override (see requirements.txt)"
+fi
 if command -v uv >/dev/null 2>&1; then
-  uv pip install -r requirements.txt -r requirements-full.txt
+  if [ "$NEED_DILL_OVERRIDE" = "1" ]; then
+    uv pip install --overrides overrides-py314.txt -r requirements.txt -r requirements-full.txt
+  else
+    uv pip install -r requirements.txt -r requirements-full.txt
+  fi
 else
   pip install -q -U pip
   pip install -q -r requirements.txt -r requirements-full.txt
+  if [ "$NEED_DILL_OVERRIDE" = "1" ]; then
+    pip install -q --upgrade 'dill>=0.4,<1.0'
+  fi
 fi
 
-jupytext --to notebook --update notebooks/*.py 2>/dev/null || jupytext --to notebook notebooks/*.py
+# `_setup.py` is a helper module, not a notebook (see setup-lite.sh).
+jupytext --to notebook --update notebooks/[0-9]*.py 2>/dev/null || jupytext --to notebook notebooks/[0-9]*.py
 
 # ── 5. .env for docker mode ─────────────────────────────────────────────
 if [ ! -f .env ]; then
