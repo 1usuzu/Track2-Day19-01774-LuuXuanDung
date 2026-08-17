@@ -6,6 +6,9 @@ set -euo pipefail
 
 echo "[docker] Day 19 full Docker setup"
 echo "[docker] Stack: Qdrant (server) + Redis + Postgres + bge-m3 embeddings"
+echo "[docker] Note: bge-m3 is multilingual (much better on Vietnamese) but"
+echo "[docker]       downloads ~2.2 GB on first use. Set EMBEDDING_BACKEND=fastembed"
+echo "[docker]       in .env to keep the light 384-dim English model."
 echo
 
 # ── 1. Runtime preflight ────────────────────────────────────────────────
@@ -41,6 +44,16 @@ case "$RUNTIME" in
     exit 1
     ;;
 esac
+
+# The closing hint must match the runtime actually used -- `docker compose down`
+# does nothing to containers started by Apple's `container`.
+if [ "$RUNTIME" = "apple" ]; then
+  STOP_HINT="Stop the stack later: make container-down            (state persists)
+                  or  make container-down ARGS=--wipe  (full reset)"
+else
+  STOP_HINT="Stop the stack later: docker compose down    (state persists)
+                  or  docker compose down -v (full reset)"
+fi
 
 # ── 3. Python venv (same as lite) ───────────────────────────────────────
 if [ ! -d ".venv" ]; then
@@ -90,6 +103,12 @@ fi
 
 # ── 6. Seed corpus + smoke test ─────────────────────────────────────────
 python scripts/seed_corpus.py
+
+# Advanced missions (NB6 compound queries, NB8 spend parquet). setup-lite.sh
+# does this too; without it NB6 dies on a missing data/agent_queries.jsonl.
+echo "  · seeding advanced-mission data (NB6 + NB8)…"
+python scripts/gen_agent_queries.py
+python scripts/gen_spend.py
 python scripts/verify_docker.py
 
 cat <<EOF
@@ -106,6 +125,5 @@ Activate the venv and continue:
     make api       # start FastAPI on :8000
     make lab       # open Jupyter on :8888
 
-Stop the stack later: docker compose down (state persists)
-                  or  docker compose down -v (full reset)
+${STOP_HINT}
 EOF

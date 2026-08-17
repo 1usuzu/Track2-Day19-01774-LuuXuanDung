@@ -8,10 +8,17 @@ Build hybrid search API + Feast feature store hoàn chỉnh, đo Precision@10 v�
 | Path | Stack | Setup | RAM | Khi nào dùng |
 |---|---|---|---|---|
 | **Lite (default)** | `fastembed` + Qdrant in-memory + SQLite Feast + FastAPI | `bash setup-lite.sh` (~60 s) | ~700 MB | Hầu hết học viên — laptop yếu, không Docker, focus vào concept |
-| **Docker (full)** | Qdrant server + Redis + Postgres + bge-m3 | `bash setup-docker.sh` (~3 min) | ~3 GB | Học viên muốn trải nghiệm production stack thật, có Docker Desktop |
+| **Docker (full)** | Qdrant server + Redis + Postgres + **bge-m3** (1024d, đa ngữ) | `bash setup-docker.sh` (~3-8 min) | ~6 GB | Muốn stack production thật + embedding tốt cho tiếng Việt |
 
 > Cả hai paths dùng **cùng `qdrant-client` API và Feast definitions** — bạn có
 > thể đổi giữa hai paths bất cứ lúc nào bằng cách đổi `QDRANT_MODE` trong `.env`.
+
+> **Embedding model là một biến thật.** `EMBEDDING_BACKEND` trong `.env` chọn
+> giữa `fastembed` (bge-small, 384d, tiếng Anh — mặc định lite),
+> `multilingual` (e5-large, 1024d), `bge-m3` (1024d, mặc định của path Docker)
+> và `openai` (1536d). Đây chính là bài học ở NB2: bge-small yếu trên câu hỏi
+> tiếng Việt diễn đạt lại; đổi sang bge-m3 rồi chạy lại NB2 để **tự đo** mức
+> cải thiện. Đổi model = đổi số chiều = **phải index lại**.
 
 ---
 
@@ -137,7 +144,7 @@ Jupyter and Jupytext keeps both in sync.
 
 ---
 
-## Deliverable (4 notebook đã chạy + ảnh chụp + reflection)
+## Deliverable (notebook đã chạy + ảnh chụp + reflection)
 
 Mapping 1-to-1 với slide deliverable bullets:
 
@@ -146,7 +153,15 @@ Mapping 1-to-1 với slide deliverable bullets:
 3. **NB3** — FastAPI `/search` response sample + bảng P50/P95/P99 cho 3 mode; hybrid P99 server-side < 50 ms.
 4. **NB4** — `feast apply` thành công + `materialize` log + online lookup result + PIT join DataFrame.
 
-Chấm điểm: xem [`rubric.md`](rubric.md). **Tổng 100 pts → Track-2 Daily Lab (30%)** + 20 pts bonus optional.
+Khối nâng cao:
+
+5. **NB5** — Bảng recall theo độ chọn lọc + over-fetch ladder.
+6. **NB6** — Bảng 3 chiến lược ở cùng ngân sách + trace reflection + `build_context()`.
+7. **NB7** — Bảng sweep ngưỡng (tiết kiệm **và** trả lời sai) + demo rò chéo tenant.
+8. **NB8** — Bảng leakage + PIT vs latest join + on-demand feature view.
+
+Chấm điểm: xem [`rubric.md`](rubric.md). **100 pts core (NB1–NB4) + 50 pts nâng cao
+(NB5–NB8) → Track-2 Daily Lab (30%)** + 20 pts bonus optional.
 
 ---
 
@@ -251,7 +266,7 @@ học viên cũng được. Full brief + self-checklist:
    git init -b main
    git remote add origin https://github.com/<your-username>/Day19-Track2-VectorFeatureStore-Lab.git
    ```
-2. Hoàn thành 4 notebooks (giữ output cells trong `.ipynb`).
+2. Hoàn thành notebooks (giữ output cells trong `.ipynb`) — NB1–NB4 bắt buộc, NB5–NB8 nâng cao.
 3. Add ảnh chụp vào `submission/screenshots/`:
    - NB1: Indexed 1000 vectors + top-5 paraphrase query
    - NB2: Bảng Precision@10 với hybrid > kw/sem

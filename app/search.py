@@ -14,14 +14,17 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
 
-from fastembed import TextEmbedding
 from qdrant_client import QdrantClient
 from qdrant_client.models import Distance, PointStruct, VectorParams
 from rank_bm25 import BM25Okapi
 
+from app.embeddings import Embedder
+
 Mode = Literal["keyword", "semantic", "hybrid"]
-EMBED_MODEL = "BAAI/bge-small-en-v1.5"   # 384-dim, CPU-friendly, multilingual works on VN
-EMBED_DIM = 384
+# Model + dimension now come from EMBEDDING_BACKEND (see app/embeddings.py).
+# Defaults are unchanged: fastembed / BAAI/bge-small-en-v1.5 / 384-dim.
+EMBED_MODEL = Embedder().model_name
+EMBED_DIM = Embedder().dim
 COLLECTION = "lab19_corpus"
 
 
@@ -48,7 +51,7 @@ class Searcher:
         self.doc_ids: list[str] = []
         self.bm25: BM25Okapi | None = None
         self.client: QdrantClient | None = None
-        self.embedder: TextEmbedding | None = None
+        self.embedder: Embedder | None = None
 
     @property
     def size(self) -> int:
@@ -88,7 +91,7 @@ class Searcher:
         self.bm25 = BM25Okapi(tokenized)
 
     def _build_vector_index(self) -> None:
-        self.embedder = TextEmbedding(model_name=EMBED_MODEL)
+        self.embedder = Embedder()
 
         mode = os.getenv("QDRANT_MODE", "memory")
         if mode == "server":
@@ -103,7 +106,9 @@ class Searcher:
             self.client.delete_collection(COLLECTION)
         self.client.create_collection(
             collection_name=COLLECTION,
-            vectors_config=VectorParams(size=EMBED_DIM, distance=Distance.COSINE),
+            # dimension must follow the chosen model, not a module constant --
+            # switching EMBEDDING_BACKEND changes it (384 -> 1024 -> 1536).
+            vectors_config=VectorParams(size=self.embedder.dim, distance=Distance.COSINE),
         )
 
         # Embed in batches of 64 — fastembed is CPU-bound and that batch size is sweet spot.

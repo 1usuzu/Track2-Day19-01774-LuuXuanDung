@@ -23,7 +23,7 @@ from qdrant_client import QdrantClient, models
 
 from app.metadata import enrich
 from app.search import COLLECTION as BASE_COLLECTION
-from app.search import EMBED_DIM, Searcher
+from app.search import Searcher
 
 FILTERED_COLLECTION = "lab19_filtered"
 
@@ -80,7 +80,7 @@ class FilteredIndex:
         client.create_collection(
             collection_name=FILTERED_COLLECTION,
             vectors_config=models.VectorParams(
-                size=EMBED_DIM, distance=models.Distance.COSINE
+                size=vectors.shape[1], distance=models.Distance.COSINE
             ),
         )
         client.upsert(
