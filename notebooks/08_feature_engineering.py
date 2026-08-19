@@ -2,6 +2,11 @@
 # jupyter:
 #   jupytext:
 #     formats: py:percent
+#     text_representation:
+#       extension: .py
+#       format_name: percent
+#       format_version: '1.3'
+#       jupytext_version: 1.19.5
 # ---
 
 # %% [markdown]
@@ -157,11 +162,17 @@ print(f"\n'lift ảo' sẽ mất khi lên production: {auc_lat - auc_pit:+.3f} A
 # > `from feast.on_demand_feature_view import on_demand_feature_view`.
 
 # %%
+import shutil
+import sys
+
 repo = ROOT / "app" / "feast_repo_ondemand"
-subprocess.run(["python", str(ROOT / "scripts" / "gen_spend.py")], check=True,
+py = sys.executable
+feast_cmd = shutil.which("feast") or str(Path(sys.executable).parent / "feast")
+
+subprocess.run([py, str(ROOT / "scripts" / "gen_spend.py")], check=True,
                capture_output=True)
-subprocess.run(["feast", "apply"], cwd=repo, check=True, capture_output=True)
-subprocess.run(["feast", "materialize-incremental", "2027-01-01T00:00:00"],
+subprocess.run([feast_cmd, "apply"], cwd=repo, check=True, capture_output=True)
+subprocess.run([feast_cmd, "materialize-incremental", "2027-01-01T00:00:00"],
                cwd=repo, check=True, capture_output=True)
 print("feast apply + materialize OK")
 
